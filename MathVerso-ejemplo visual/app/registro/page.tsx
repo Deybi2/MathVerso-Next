@@ -166,6 +166,13 @@ export default function PantallaRegistro() {
           </button>
         </p>
 
+        {/* Info cuenta admin */}
+        <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-amber-800 text-sm font-medium mb-1">Cuenta Admin disponible:</p>
+          <p className="text-amber-700 text-xs">Email: admin@mathverso.com</p>
+          <p className="text-amber-700 text-xs">Contraseña: admin123</p>
+        </div>
+
       </div>
     </main>
   )
