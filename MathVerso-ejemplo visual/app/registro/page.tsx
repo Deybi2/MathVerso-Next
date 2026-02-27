@@ -2,7 +2,7 @@
 // PANTALLA DE REGISTRO - Matemáticas en Verso
 // =============================================================================
 // Formulario para crear una nueva cuenta de usuario.
-// Usa localStorage para guardar usuarios y su estado inicial.
+// Registra en PocketBase y conserva el estado local de juego por usuario.
 // =============================================================================
 
 "use client"
@@ -15,13 +15,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Loader2 } from "lucide-react"
-import {
-  useAplicacion,
-  guardarUsuario,
-  buscarUsuarioPorEmail,
-  guardarEstadoUsuario,
-} from "@/contextos/contexto-aplicacion"
-import { ESTADO_INICIAL, type UsuarioGuardado } from "@/tipos/estado-global"
+import { useAplicacion, guardarEstadoUsuario } from "@/contextos/contexto-aplicacion"
+import { registrarUsuarioPocketBase } from "@/lib/servicio-autenticacion"
+import { ESTADO_INICIAL } from "@/tipos/estado-global"
 
 export default function PantallaRegistro() {
   const router = useRouter()
@@ -45,43 +41,30 @@ export default function PantallaRegistro() {
     setCargando(true)
     setError(null)
 
-    const usuarioExistente = buscarUsuarioPorEmail(formulario.email)
-    if (usuarioExistente) {
-      setError("Ya existe una cuenta con este email")
+    try {
+      const nuevoUsuario = await registrarUsuarioPocketBase({
+        email: formulario.email,
+        contraseña: formulario.contraseña,
+        nombreUsuario: formulario.nombreUsuario,
+      })
+
+      const estadoInicial = {
+        ...ESTADO_INICIAL,
+        usuarioActual: nuevoUsuario,
+      }
+      guardarEstadoUsuario(nuevoUsuario.id, estadoInicial)
+
+      dispatch({ type: "CARGAR_ESTADO", payload: estadoInicial })
+
+      // Guardar el estado en localStorage general
+      localStorage.setItem("mathverso_estado", JSON.stringify(estadoInicial))
+
+      router.push("/mapa")
+    } catch {
+      setError("No se pudo crear la cuenta. Verifica si el email ya existe o si PocketBase está disponible.")
+    } finally {
       setCargando(false)
-      return
     }
-
-    const nuevoUsuario: UsuarioGuardado = {
-      id: `usuario-${Date.now()}`,
-      email: formulario.email,
-      nombreUsuario: formulario.nombreUsuario,
-      nombre: formulario.nombreUsuario,
-      contraseña: formulario.contraseña,
-      esAdmin: false,
-      fechaRegistro: new Date().toISOString(),
-    }
-
-    const guardado = guardarUsuario(nuevoUsuario)
-    if (!guardado) {
-      setError("Error al crear la cuenta")
-      setCargando(false)
-      return
-    }
-
-    const estadoInicial = {
-      ...ESTADO_INICIAL,
-      usuarioActual: nuevoUsuario,
-    }
-    guardarEstadoUsuario(nuevoUsuario.id, estadoInicial)
-
-    dispatch({ type: "INICIAR_SESION", payload: nuevoUsuario })
-
-    // Guardar el estado en localStorage general
-    localStorage.setItem("mathverso_estado", JSON.stringify(estadoInicial))
-
-    setCargando(false)
-    router.push("/mapa")
   }
 
   const formularioValido =
@@ -189,6 +172,7 @@ export default function PantallaRegistro() {
           <p className="text-amber-700 text-xs">Email: admin@mathverso.com</p>
           <p className="text-amber-700 text-xs">Contraseña: admin123</p>
         </div>
+
       </div>
     </main>
   )

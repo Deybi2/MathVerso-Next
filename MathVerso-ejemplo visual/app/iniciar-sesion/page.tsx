@@ -2,7 +2,7 @@
 // PANTALLA DE INICIO DE SESIÓN - Matemáticas en Verso
 // =============================================================================
 // Formulario para iniciar sesión con una cuenta existente.
-// Valida credenciales contra localStorage.
+// Autentica contra PocketBase y conserva el estado local de juego por usuario.
 // =============================================================================
 
 "use client"
@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Loader2 } from "lucide-react"
-import { useAplicacion, validarCredenciales, obtenerEstadoUsuario } from "@/contextos/contexto-aplicacion"
+import { useAplicacion, obtenerEstadoUsuario } from "@/contextos/contexto-aplicacion"
+import { iniciarSesionPocketBase } from "@/lib/servicio-autenticacion"
 import { ESTADO_INICIAL, ESTADO_ADMIN } from "@/tipos/estado-global"
 
 export default function PantallaInicioSesion() {
@@ -39,41 +40,40 @@ export default function PantallaInicioSesion() {
     setCargando(true)
     setError(null)
 
-    const usuario = validarCredenciales(formulario.email, formulario.contraseña)
+    try {
+      const usuario = await iniciarSesionPocketBase(formulario.email, formulario.contraseña)
 
-    if (!usuario) {
-      setError("Email o contraseña incorrectos. Verifica tus datos o crea una cuenta.")
-      setCargando(false)
-      return
-    }
+      let estadoUsuario = obtenerEstadoUsuario(usuario.id)
 
-    let estadoUsuario = obtenerEstadoUsuario(usuario.id)
-
-    if (!estadoUsuario) {
-      // Si es admin, usar estado admin; si no, crear estado inicial
-      if (usuario.esAdmin) {
-        estadoUsuario = {
-          ...ESTADO_ADMIN,
-          usuarioActual: usuario,
+      if (!estadoUsuario) {
+        // Si es admin, usar estado admin; si no, crear estado inicial
+        if (usuario.esAdmin) {
+          estadoUsuario = {
+            ...ESTADO_ADMIN,
+            usuarioActual: usuario,
+          }
+        } else {
+          estadoUsuario = {
+            ...ESTADO_INICIAL,
+            usuarioActual: usuario,
+          }
         }
       } else {
-        estadoUsuario = {
-          ...ESTADO_INICIAL,
-          usuarioActual: usuario,
-        }
+        // Actualizar referencia al usuario actual
+        estadoUsuario.usuarioActual = usuario
       }
-    } else {
-      // Actualizar referencia al usuario actual
-      estadoUsuario.usuarioActual = usuario
+
+      dispatch({ type: "CARGAR_ESTADO", payload: estadoUsuario })
+
+      // Guardar en localStorage general
+      localStorage.setItem("mathverso_estado", JSON.stringify(estadoUsuario))
+
+      router.push("/mapa")
+    } catch {
+      setError("No se pudo iniciar sesión. Revisa tus credenciales y conexión con PocketBase.")
+    } finally {
+      setCargando(false)
     }
-
-    dispatch({ type: "CARGAR_ESTADO", payload: estadoUsuario })
-
-    // Guardar en localStorage general
-    localStorage.setItem("mathverso_estado", JSON.stringify(estadoUsuario))
-
-    setCargando(false)
-    router.push("/mapa")
   }
 
   const formularioValido = formulario.email.includes("@") && formulario.contraseña.length >= 1
@@ -166,6 +166,7 @@ export default function PantallaInicioSesion() {
           <p className="text-amber-700 text-xs">Email: admin@mathverso.com</p>
           <p className="text-amber-700 text-xs">Contraseña: admin123</p>
         </div>
+
       </div>
     </main>
   )
