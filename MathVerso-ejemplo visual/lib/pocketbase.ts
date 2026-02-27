@@ -25,16 +25,12 @@ pb.autoCancellation(false)
 /**
  * Verifica si el usuario está autenticado
  */
-export const estaAutenticado = (): boolean => {
-  return pb.authStore.isValid
-}
+export const estaAutenticado = (): boolean => pb.authStore.isValid
 
 /**
  * Obtiene el usuario actual autenticado
  */
-export const obtenerUsuarioActual = () => {
-  return pb.authStore.model
-}
+export const obtenerUsuarioActual = () => pb.authStore.model
 
 /**
  * Cierra la sesión del usuario actual
@@ -63,77 +59,62 @@ export const refrescarToken = async () => {
 /**
  * Obtiene un registro por ID con manejo de errores
  */
-export const obtenerRegistro = async <T>(\
-  coleccion: string, \
-  id: string, \
-  opciones?: object\
-)
-: Promise<T | null> =>
-{
+export const obtenerRegistro = async <T>(
+  coleccion: string,
+  id: string,
+  opciones?: object,
+): Promise<T | null> => {
   try {
-    return await pb.collection(coleccion).getOne(id, opciones) as T;
+    return (await pb.collection(coleccion).getOne(id, opciones)) as T
   } catch (error) {
     console.error(`Error obteniendo registro de ${coleccion}:`, error)
-    return null;
+    return null
   }
 }
 
 /**
  * Obtiene una lista de registros con filtros
  */
-export const obtenerLista = async <T>(\
-  coleccion: string,\
-  pagina: number = 1,\
-  porPagina: number = 50,\
-  filtro?: string,\
-  ordenar?: string\
-)
-: Promise<T[]> =>
-{
+export const obtenerLista = async <T>(
+  coleccion: string,
+  pagina = 1,
+  porPagina = 50,
+  filtro?: string,
+  ordenar?: string,
+): Promise<T[]> => {
   try {
     const resultado = await pb.collection(coleccion).getList(pagina, porPagina, {
       filter: filtro,
       sort: ordenar,
     })
-    return resultado.items as T[];
+    return resultado.items as T[]
   } catch (error) {
     console.error(`Error obteniendo lista de ${coleccion}:`, error)
-    return [];
+    return []
   }
 }
 
 /**
  * Crea un nuevo registro
  */
-export const crearRegistro = async <T>(\
-  coleccion: string,\
-  datos: object\
-)
-: Promise<T | null> =>
-{
+export const crearRegistro = async <T>(coleccion: string, datos: object): Promise<T | null> => {
   try {
-    return await pb.collection(coleccion).create(datos) as T;
+    return (await pb.collection(coleccion).create(datos)) as T
   } catch (error) {
     console.error(`Error creando registro en ${coleccion}:`, error)
-    return null;
+    return null
   }
 }
 
 /**
  * Actualiza un registro existente
  */
-export const actualizarRegistro = async <T>(\
-  coleccion: string,\
-  id: string,\
-  datos: object\
-)
-: Promise<T | null> =>
-{
+export const actualizarRegistro = async <T>(coleccion: string, id: string, datos: object): Promise<T | null> => {
   try {
-    return await pb.collection(coleccion).update(id, datos) as T;
+    return (await pb.collection(coleccion).update(id, datos)) as T
   } catch (error) {
     console.error(`Error actualizando registro en ${coleccion}:`, error)
-    return null;
+    return null
   }
 }
 
